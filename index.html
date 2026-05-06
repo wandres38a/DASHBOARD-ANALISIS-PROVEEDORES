@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Gestión de Proveedores</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-page:   #0e1117;
+  --bg-panel:  #161b27;
+  --bg-card:   #1c2333;
+  --bg-hover:  #212840;
+  --border:    rgba(255,255,255,0.07);
+  --border-md: rgba(255,255,255,0.12);
+
+  --cyan:    #38bdf8;
+  --gold:    #f59e0b;
+  --green:   #10b981;
+  --red:     #ef4444;
+  --purple:  #a78bfa;
+  --orange:  #fb923c;
+  --pink:    #ec4899;
+  --teal:    #2dd4bf;
+  --lime:    #84cc16;
+
+  --text-1:  #f1f5f9;
+  --text-2:  #94a3b8;
+  --text-3:  #4b5675;
+
+  --radius:  10px;
+  --radius-lg: 14px;
+  --shadow:  0 4px 24px rgba(0,0,0,0.4);
+
+  /* Provider palette */
+  --c-loncin:  #38bdf8;
+  --c-minf:    #f59e0b;
+  --c-daojiu:  #10b981;
+  --c-guangyu: #a78bfa;
+  --c-tayo:    #fb923c;
+  --c-taizhou: #ec4899;
+  --c-otros:   #64748b;
+}
+
+html { font-size: 14px; }
+body {
+  background: var(--bg-page);
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text-1);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, #0e1117 0%, #131929 50%, #0e1117 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, #38bdf8, #a78bfa, #10b981, #f59e0b, #38bdf8);
+  background-size: 300% 100%;
+  animation: shimmer 4s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:0% 50%} 100%{background-position:300% 50%} }
+
+.header-left h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  background: linear-gradient(90deg, var(--text-1) 60%, var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header-left p {
+  font-size: 0.75rem;
+  color: var(--text-2);
+  margin-top: 3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.header-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.period-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border-md);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.72rem;
+  color: var(--text-2);
+  letter-spacing: 0.5px;
+}
+.live-badge {
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+@keyframes pulse-green { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+
+/* ===== LAYOUT ===== */
+.main {
+  padding: 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.row { display: grid; gap: 16px; }
+.r-5col { grid-template-columns: repeat(5, 1fr); }
+.r-3col { grid-template-columns: 2.2fr 1fr 1.3fr; }
+.r-2col { grid-template-columns: 1fr 1fr; }
+.r-2col-big { grid-template-columns: 2.5fr 1.5fr; }
+.r-fullwidth { grid-template-columns: 1fr; }
+.r-4col-even { grid-template-columns: 5fr 3fr 3fr 3fr; }
+
+/* ===== KPI CARDS ===== */
+.kpi {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.kpi-stripe {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.kpi-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+.kpi-label {
+  font-size: 0.68rem;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 5px;
+}
+.kpi-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.kpi-trend {
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.up { color: var(--green); }
+.down { color: var(--red); }
+.warn { color: var(--gold); }
+.neu { color: var(--text-2); }
+.kpi-mini-bar {
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 10px;
+  background: var(--border);
+}
+.kpi-mini-fill { height: 100%; border-radius: 2px; }
+
+/* ===== PANELS ===== */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.panel-accent {
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+.panel-title {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-2);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.panel-title .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px currentColor;
+}
+.badge {
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.badge-proj { background: rgba(245,158,11,0.15); color: var(--gold); border: 1px solid rgba(245,158,11,0.25); }
+.badge-warn { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+.badge-ok   { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
+
+/* ===== RISK GAUGE ===== */
+.risk-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 8px;
+}
+.gauge-ring-wrap { position: relative; width: 130px; height: 70px; margin-bottom: 10px; }
+.gauge-val {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ef4444;
+}
+.risk-zones {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+.risk-zone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.zone-safe   { background: rgba(16,185,129,0.08); color: var(--green); }
+.zone-warn   { background: rgba(245,158,11,0.08); color: var(--gold); }
+.zone-crit   { background: rgba(239,68,68,0.12);  color: var(--red);  border: 1px solid rgba(239,68,68,0.2); }
+
+/* ===== RISK BARS ===== */
+.risk-rows { display: flex; flex-direction: column; gap: 7px; margin-top: 2px; }
+.risk-item { display: flex; align-items: center; gap: 8px; }
+.risk-name {
+  font-size: 0.72rem;
+  width: 100px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.risk-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.risk-fill {
+  height: 100%;
+  border-radius: 4px;
+  position: relative;
+  transition: width 1.4s cubic-bezier(0.4,0,0.2,1);
+}
+.risk-pct { font-size: 0.7rem; color: var(--text-2); width: 34px; text-align: right; flex-shrink: 0; }
+.risk-usd { font-size: 0.68rem; color: var(--text-3); width: 62px; text-align: right; flex-shrink: 0; }
+
+/* ===== QUADRANT ===== */
+.quad-container {
+  position: relative;
+  width: 100%;
+  padding-top: 58%;
+  margin-top: 4px;
+}
+.quad-inner { position: absolute; inset: 0; }
+.quad-svg { width: 100%; height: 100%; }
+
+/* ===== TICKET BARS ===== */
+.ticket-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+.ticket-item { display: flex; align-items: center; gap: 8px; }
+.t-label { font-size: 0.7rem; width: 88px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-track { flex: 1; height: 7px; background: var(--bg-card); border-radius: 4px; overflow: hidden; }
+.t-fill { height: 100%; border-radius: 4px; }
+.t-value { font-size: 0.72rem; font-weight: 600; width: 40px; text-align: right; flex-shrink: 0; }
+
+/* ===== CONSISTENCY GRID ===== */
+.cons-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 4px; }
+.cons-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 10px;
+}
+.cons-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.cons-prov { font-size: 0.72rem; font-weight: 600; }
+.cons-days { font-size: 0.62rem; color: var(--text-2); }
+.cons-bars { display: flex; gap: 3px; height: 4px; }
+.cons-bar { flex: 1; border-radius: 2px; }
+
+/* ===== VOLATILITY ===== */
+.volt-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 4px; }
+.volt-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  text-align: center;
+}
+.volt-card.featured { border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); }
+.volt-month { font-size: 0.62rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.volt-val { font-size: 1rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-bottom: 3px; }
+.volt-mom { font-size: 0.7rem; font-weight: 600; }
+.volt-insight {
+  margin-top: 10px;
+  padding: 9px 14px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.18);
+  border-radius: var(--radius);
+  font-size: 0.72rem;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.volt-insight strong { color: var(--gold); }
+
+/* ===== CHART WRAPPERS ===== */
+.chart-wrap { position: relative; }
+
+/* ===== PROVIDER TABLE ===== */
+.prov-table { width: 100%; border-collapse: collapse; }
+.prov-table th {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-3);
+  font-weight: 600;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.prov-table th:not(:first-child) { text-align: right; }
+.prov-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 0.72rem;
+}
+.prov-table td:not(:first-child) { text-align: right; }
+.prov-table tr:hover td { background: var(--bg-hover); }
+.rank {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.rank-1 { background: rgba(245,158,11,0.2); color: var(--gold); }
+.rank-2 { background: rgba(56,189,248,0.15); color: var(--cyan); }
+.rank-3 { background: rgba(16,185,129,0.15); color: var(--green); }
+.rank-n { background: rgba(255,255,255,0.05); color: var(--text-3); }
+.prov-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.tbl-bar-wrap { width: 80px; display: flex; align-items: center; gap: 5px; }
+.tbl-bar { height: 5px; border-radius: 3px; min-width: 2px; }
+
+/* ===== SECTION DIVIDER ===== */
+.section-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 -4px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  text-align: center;
+  padding: 14px;
+  font-size: 0.65rem;
+  color: var(--text-3);
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <h1>Dashboard de Gestión de Proveedores</h1>
+    <p>Análisis Estratégico · Facturación · Rotación · Proyección · Riesgo de Dependencia</p>
+  </div>
+  <div class="header-right">
+    <span class="period-badge">Dic 2025 – Abr 2026</span>
+    <span class="live-badge"><span class="live-dot"></span>5 meses analizados</span>
+  </div>
+</header>
+
+<main class="main">
+
+<!-- ===== FILA 1: KPIs ===== -->
+<div class="row r-5col">
+
+  <div class="kpi">
+    <div class="kpi-stripe" style="background: linear-gradient(90deg,var(--cyan),var(--purple))"></div>
+    <div class="kpi-icon" style="background:rgba(56,189,248,0.12)">💰</div>
+    <div class="kpi-label">Valor Total FOB</div>
+    <div class="kpi-value" style="color:var(--cyan)">$98,460</div>
+    <div class="kpi-trend up">▲ +68.4% vs mes anterior</div>
+    <div class="kpi-mini-bar"><div class="kpi-mini-fill" style="width:100%;background:var(--cyan)"></div></div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi-stripe" style="background: linear-gradient(90deg,var(--green),var(--teal))"></div>
+    <div class="kpi-icon" style="background:rgba(16,185,129,0.12)">📦</div>
+    <div class="kpi-label">Unidades Facturadas</div>
+    <div class="kpi-value" style="color:var(--green)">25,074</div>
+    <div class="kpi-trend neu">5 meses del período</div>
+    <div class="kpi-mini-bar"><div class="kpi-mini-fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi-stripe" style="background: linear-gradient(90deg,var(--red),var(--orange))"></div>
+    <div class="kpi-icon" style="background:rgba(239,68,68,0.12)">⚠️</div>
+    <div class="kpi-label">Concentración Riesgo</div>
+    <div class="kpi-value" style="color:var(--red)">69.6%</div>
+    <div class="kpi-trend warn">⚠ LONCIN — Zona Crítica</div>
+    <div class="kpi-mini-bar"><div class="kpi-mini-fill" style="width:69.6%;background:var(--red)"></div></div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi-stripe" style="background: linear-gradient(90deg,var(--purple),var(--pink))"></div>
+    <div class="kpi-icon" style="background:rgba(167,139,250,0.12)">🏷</div>
+    <div class="kpi-label">SKUs Únicos</div>
+    <div class="kpi-value" style="color:var(--purple)">2,352</div>
+    <div class="kpi-trend neu">13 proveedores activos</div>
+    <div class="kpi-mini-bar"><div class="kpi-mini-fill" style="width:82%;background:var(--purple)"></div></div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi-stripe" style="background: linear-gradient(90deg,var(--gold),var(--lime))"></div>
+    <div class="kpi-icon" style="background:rgba(245,158,11,0.12)">🥇</div>
+    <div class="kpi-label">Proveedor Líder</div>
+    <div class="kpi-value" style="color:var(--gold);font-size:1.3rem">LONCIN</div>
+    <div class="kpi-trend up">$68,526 · 4,357 transac.</div>
+    <div class="kpi-mini-bar"><div class="kpi-mini-fill" style="width:69.6%;background:var(--gold)"></div></div>
+  </div>
+
+</div><!-- /KPIs -->
+
+<!-- ===== FILA 2: Barras principales + Riesgo + Dona ===== -->
+<div class="section-label">Panorama General por Proveedor</div>
+<div class="row r-3col">
+
+  <!-- Panel A: Barras valor + línea unidades -->
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--cyan)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--cyan);background:var(--cyan)"></span>Valor FOB ($) y Unidades por Proveedor</div>
+    <div class="chart-wrap" style="height:230px"><canvas id="cProvBar" aria-label="Barras de valor FOB y línea de unidades por proveedor"></canvas></div>
+  </div>
+
+  <!-- Panel B: Semáforo riesgo -->
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--red)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--red);background:var(--red)"></span>Riesgo de Dependencia <span class="badge badge-warn">Crítico</span></div>
+    <div class="risk-gauge">
+      <div class="gauge-ring-wrap">
+        <svg viewBox="0 0 130 70" width="130" height="70">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#10b981"/>
+              <stop offset="40%"  stop-color="#f59e0b"/>
+              <stop offset="70%"  stop-color="#ef4444"/>
+              <stop offset="100%" stop-color="#7f1d1d"/>
+            </linearGradient>
+          </defs>
+          <!-- track -->
+          <path d="M10 66 A55 55 0 0 1 120 66" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="12" stroke-linecap="round"/>
+          <!-- fill 69.6% → angle -->
+          <path d="M10 66 A55 55 0 0 1 120 66" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round"
+            stroke-dasharray="173" stroke-dashoffset="53"/>
+          <!-- needle -->
+          <line x1="65" y1="66" x2="18" y2="22" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="65" cy="66" r="4" fill="#ef4444"/>
+        </svg>
+        <div class="gauge-val">69.6%</div>
+      </div>
+      <div style="font-size:0.78rem;font-weight:600;color:var(--red);margin-bottom:6px">Dependencia Alta — Zona Crítica</div>
+      <div style="font-size:0.68rem;color:var(--text-2);text-align:center;line-height:1.55;margin-bottom:10px">
+        LONCIN representa 7 de cada 10 dólares.<br>Riesgo operativo ante fallas de suministro.
+      </div>
+      <div class="risk-zones">
+        <div class="risk-zone-row zone-safe"><span>Zona segura</span><span>&lt; 40%</span></div>
+        <div class="risk-zone-row zone-warn"><span>Zona de alerta</span><span>40–60%</span></div>
+        <div class="risk-zone-row zone-crit"><span>⚠ Zona crítica (actual)</span><span>&gt; 60%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel C: Dona participación -->
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--green)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--green);background:var(--green)"></span>Participación en Ventas FOB</div>
+    <div class="chart-wrap" style="height:160px"><canvas id="cDona" aria-label="Donut participación por proveedor"></canvas></div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px">
+      <span style="font-size:0.65rem;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-loncin);display:inline-block"></span>LONCIN 69.6%</span>
+      <span style="font-size:0.65rem;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-minf);display:inline-block"></span>MINF 7.1%</span>
+      <span style="font-size:0.65rem;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-daojiu);display:inline-block"></span>DAOJIU 6.3%</span>
+      <span style="font-size:0.65rem;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-guangyu);display:inline-block"></span>GUANGYU 5.8%</span>
+      <span style="font-size:0.65rem;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-tayo);display:inline-block"></span>TAYO 4.8%</span>
+      <span style="font-size:0.65rem;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-taizhou);display:inline-block"></span>TAIZHOU 3.5%</span>
+      <span style="font-size:0.65rem;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-otros);display:inline-block"></span>OTROS 3.0%</span>
+    </div>
+  </div>
+
+</div><!-- /fila 2 -->
+
+<!-- ===== FILA 3: Evolución mensual + proyección ===== -->
+<div class="section-label">Evolución Temporal y Proyección</div>
+<div class="row r-fullwidth">
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--purple)"></div>
+    <div class="panel-title">
+      <span class="dot" style="color:var(--purple);background:var(--purple)"></span>
+      Evolución de Ventas por Proveedor (FOB) — Histórico + Proyección Mayo–Junio 2026
+      <span class="badge badge-proj">▸ Proyectado — Regresión Lineal</span>
+    </div>
+    <div class="chart-wrap" style="height:210px"><canvas id="cEvol" aria-label="Evolución mensual y proyección por proveedor"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== FILA 4: Cuadrante FULL WIDTH ===== -->
+<div class="section-label">Análisis Estratégico por Proveedor</div>
+
+<!-- Cuadrante estratégico — ancho completo -->
+<div class="row r-fullwidth">
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--pink)"></div>
+    <div class="panel-title">
+      <span class="dot" style="color:var(--pink);background:var(--pink)"></span>
+      Cuadrante Estratégico — Atención Prioritaria por Proveedor
+    </div>
+    <div style="font-size:0.7rem;color:var(--text-2);margin-bottom:12px;display:flex;gap:24px;flex-wrap:wrap">
+      <span>📌 <strong style="color:var(--text-1)">Eje X</strong> = Consistencia (días activos en el período)</span>
+      <span>📌 <strong style="color:var(--text-1)">Eje Y</strong> = Valor FOB total facturado</span>
+      <span>📌 <strong style="color:var(--text-1)">Tamaño del círculo</strong> = Unidades facturadas</span>
+      <span style="color:var(--text-3);font-style:italic">* Escala Y ajustada — LONCIN es outlier (10× mayor que el resto)</span>
+    </div>
+    <svg width="100%" viewBox="0 0 900 500" style="display:block" font-family="Inter,sans-serif">
+
+      <!-- ── Fondos de cuadrantes ── -->
+      <!-- Arriba izquierda: Alto Valor / Baja Consistencia -->
+      <rect x="0" y="0" width="450" height="250" rx="6" fill="rgba(239,68,68,0.06)"/>
+      <!-- Arriba derecha: Estrella -->
+      <rect x="450" y="0" width="450" height="250" rx="6" fill="rgba(16,185,129,0.07)"/>
+      <!-- Abajo izquierda: Nicho/Monitorear -->
+      <rect x="0" y="250" width="450" height="250" rx="6" fill="rgba(245,158,11,0.04)"/>
+      <!-- Abajo derecha: Consistente/Bajo Valor -->
+      <rect x="450" y="250" width="450" height="250" rx="6" fill="rgba(100,116,139,0.04)"/>
+
+      <!-- ── Líneas divisorias ── -->
+      <line x1="450" y1="0" x2="450" y2="500" stroke="rgba(255,255,255,0.1)" stroke-width="1.2" stroke-dasharray="6,4"/>
+      <line x1="0" y1="250" x2="900" y2="250" stroke="rgba(255,255,255,0.1)" stroke-width="1.2" stroke-dasharray="6,4"/>
+
+      <!-- ── Etiquetas de cuadrante ── -->
+      <text x="225" y="22" text-anchor="middle" font-size="12" fill="rgba(239,68,68,0.8)" font-weight="700">⚠ Alto Valor / Baja Consistencia</text>
+      <text x="225" y="38" text-anchor="middle" font-size="10" fill="rgba(239,68,68,0.5)">Oportunidad de desarrollo — investigar patrón de compra</text>
+
+      <text x="675" y="22" text-anchor="middle" font-size="13" fill="rgba(16,185,129,0.95)" font-weight="700">★ Estrella — Prioridad Máxima</text>
+      <text x="675" y="38" text-anchor="middle" font-size="10" fill="rgba(16,185,129,0.55)">Alto valor + alta consistencia — proteger y fortalecer</text>
+
+      <text x="225" y="492" text-anchor="middle" font-size="11" fill="rgba(245,158,11,0.7)" font-weight="600">Nicho / Monitorear</text>
+      <text x="225" y="480" text-anchor="middle" font-size="9" fill="rgba(245,158,11,0.4)">Bajo valor + baja consistencia</text>
+
+      <text x="675" y="492" text-anchor="middle" font-size="11" fill="rgba(100,116,139,0.8)" font-weight="600">Consistente / Bajo Valor</text>
+      <text x="675" y="480" text-anchor="middle" font-size="9" fill="rgba(100,116,139,0.5)">Candidatos a crecer — dar más atención comercial</text>
+
+      <!-- ── Etiquetas de ejes ── -->
+      <text x="12" y="470" font-size="9" fill="rgba(148,163,184,0.45)">← Baja consistencia</text>
+      <text x="820" y="470" font-size="9" fill="rgba(148,163,184,0.45)">Alta consistencia →</text>
+      <text x="8" y="260" font-size="9" fill="rgba(148,163,184,0.45)" text-anchor="middle" transform="rotate(-90,8,260)">↑ Mayor valor FOB</text>
+
+      <!-- ── Líneas de referencia de días (grid vertical) ── -->
+      <line x1="169" y1="0" x2="169" y2="500" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      <text x="169" y="265" text-anchor="middle" font-size="8" fill="rgba(148,163,184,0.3)">15d</text>
+      <line x1="414" y1="0" x2="414" y2="500" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      <text x="414" y="265" text-anchor="middle" font-size="8" fill="rgba(148,163,184,0.3)">46d</text>
+      <line x1="620" y1="0" x2="620" y2="500" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      <text x="620" y="265" text-anchor="middle" font-size="8" fill="rgba(148,163,184,0.3)">72d</text>
+      <line x1="692" y1="0" x2="692" y2="500" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      <line x1="707" y1="0" x2="707" y2="500" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      <line x1="850" y1="0" x2="850" y2="500" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      <text x="850" y="265" text-anchor="middle" font-size="8" fill="rgba(148,163,184,0.3)">101d</text>
+
+      <!-- ════════════════════════════════════════
+           PROVEEDORES — coordenadas corregidas
+           Escala Y: LONCIN outlier fijo arriba.
+           Resto escalado en rango propio (val 3000-6945 → y 140-445)
+           Escala X: días/101 × 800 + 50
+           ════════════════════════════════════════ -->
+
+      <!-- LONCIN: cx=850, cy=75, r=40 — ESTRELLA dominante -->
+      <circle cx="850" cy="75" r="42" fill="rgba(56,189,248,0.15)" stroke="#38bdf8" stroke-width="2"/>
+      <circle cx="850" cy="75" r="42" fill="none" stroke="#38bdf8" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.4"/>
+      <text x="850" y="68" text-anchor="middle" font-size="12" font-weight="700" fill="#38bdf8">LONCIN</text>
+      <text x="850" y="82" text-anchor="middle" font-size="10" fill="#38bdf8">$68,526</text>
+      <text x="850" y="95" text-anchor="middle" font-size="9" fill="rgba(56,189,248,0.6)">101 días</text>
+
+      <!-- DAOJIU: cx=169, cy=195, r=15 — ALTO VALOR / BAJA CONSISTENCIA ✓ -->
+      <circle cx="169" cy="195" r="16" fill="rgba(16,185,129,0.18)" stroke="#10b981" stroke-width="1.8"/>
+      <text x="169" y="190" text-anchor="middle" font-size="11" font-weight="700" fill="#10b981">DAOJIU</text>
+      <text x="169" y="203" text-anchor="middle" font-size="9" fill="#10b981">$6,230</text>
+      <text x="169" y="215" text-anchor="middle" font-size="8.5" fill="rgba(239,68,68,0.8)">⚡ 15 días</text>
+
+      <!-- MINF: cx=620, cy=140, r=12 — limítrofe arriba-derecha -->
+      <circle cx="620" cy="155" r="13" fill="rgba(245,158,11,0.18)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="620" y="150" text-anchor="middle" font-size="11" font-weight="700" fill="#f59e0b">MINF</text>
+      <text x="620" y="163" text-anchor="middle" font-size="9" fill="#f59e0b">$6,945</text>
+      <text x="620" y="175" text-anchor="middle" font-size="8" fill="rgba(245,158,11,0.6)">72 días</text>
+
+      <!-- GUANGYU: cx=707, cy=234, r=12 — CONSISTENTE / BAJO VALOR -->
+      <circle cx="707" cy="305" r="12" fill="rgba(167,139,250,0.18)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="707" y="300" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a78bfa">GUANGYU</text>
+      <text x="707" y="312" text-anchor="middle" font-size="9" fill="#a78bfa">$5,735</text>
+      <text x="707" y="323" text-anchor="middle" font-size="8" fill="rgba(167,139,250,0.6)">83 días</text>
+
+      <!-- TAYO: cx=692, cy=309, r=12 — CONSISTENTE / BAJO VALOR -->
+      <circle cx="560" cy="355" r="12" fill="rgba(251,146,60,0.18)" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="560" y="350" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fb923c">TAYO</text>
+      <text x="560" y="362" text-anchor="middle" font-size="9" fill="#fb923c">$4,763</text>
+      <text x="560" y="373" text-anchor="middle" font-size="8" fill="rgba(251,146,60,0.6)">81 días</text>
+
+      <!-- TAIZHOU: cx=414, cy=413, r=11 — NICHO / MONITOREAR -->
+      <circle cx="414" cy="413" r="11" fill="rgba(236,72,153,0.18)" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="414" y="408" text-anchor="middle" font-size="10" font-weight="700" fill="#ec4899">TAIZHOU</text>
+      <text x="414" y="420" text-anchor="middle" font-size="9" fill="#ec4899">$3,418</text>
+      <text x="414" y="431" text-anchor="middle" font-size="8" fill="rgba(236,72,153,0.6)">46 días</text>
+
+      <!-- Leyenda tamaño círculo -->
+      <circle cx="30" cy="460" r="6" fill="none" stroke="rgba(148,163,184,0.3)" stroke-width="1"/>
+      <circle cx="48" cy="460" r="10" fill="none" stroke="rgba(148,163,184,0.3)" stroke-width="1"/>
+      <circle cx="72" cy="460" r="14" fill="none" stroke="rgba(148,163,184,0.3)" stroke-width="1"/>
+      <text x="92" y="463" font-size="8" fill="rgba(148,163,184,0.4)">= Unidades facturadas</text>
+
+    </svg>
+  </div>
+</div>
+
+<!-- Ticket + Consistencia en fila aparte -->
+<div class="row r-2col">
+
+
+  <!-- Ticket promedio -->
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--orange)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--orange);background:var(--orange)"></span>Ticket Promedio / Transacción</div>
+    <div class="ticket-rows">
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--c-daojiu)">DAOJIU</span>
+        <div class="t-track"><div class="t-fill" style="width:100%;background:var(--c-daojiu)"></div></div>
+        <span class="t-value" style="color:var(--c-daojiu)">$27.6</span>
+      </div>
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--text-2)">VENTO</span>
+        <div class="t-track"><div class="t-fill" style="width:96%;background:var(--c-otros)"></div></div>
+        <span class="t-value">$26.4</span>
+      </div>
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--text-2)">RATO</span>
+        <div class="t-track"><div class="t-fill" style="width:59%;background:var(--c-otros)"></div></div>
+        <span class="t-value">$16.2</span>
+      </div>
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--c-loncin)">LONCIN</span>
+        <div class="t-track"><div class="t-fill" style="width:57%;background:var(--c-loncin)"></div></div>
+        <span class="t-value" style="color:var(--c-loncin)">$15.7</span>
+      </div>
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--c-taizhou)">TAIZHOU</span>
+        <div class="t-track"><div class="t-fill" style="width:41%;background:var(--c-taizhou)"></div></div>
+        <span class="t-value">$11.2</span>
+      </div>
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--c-minf)">MINF</span>
+        <div class="t-track"><div class="t-fill" style="width:39%;background:var(--c-minf)"></div></div>
+        <span class="t-value">$10.7</span>
+      </div>
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--c-guangyu)">GUANGYU</span>
+        <div class="t-track"><div class="t-fill" style="width:32%;background:var(--c-guangyu)"></div></div>
+        <span class="t-value">$8.7</span>
+      </div>
+      <div class="ticket-item">
+        <span class="t-label" style="color:var(--text-3)">QUALITY</span>
+        <div class="t-track"><div class="t-fill" style="width:3%;background:var(--c-otros)"></div></div>
+        <span class="t-value" style="color:var(--text-3)">$0.8</span>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding:7px 10px;background:rgba(251,146,60,0.07);border-radius:7px;border-left:2px solid var(--orange);font-size:0.65rem;color:var(--text-2);line-height:1.5">
+      <strong style="color:var(--orange)">DAOJIU</strong> tiene el ticket más alto aunque poca frecuencia — en abril facturó $5,602 en solo 15 días activos.
+    </div>
+  </div>
+
+  <!-- Consistencia -->
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--teal)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--teal);background:var(--teal)"></span>Días Activos vs Volumen</div>
+    <div class="cons-grid">
+      <div class="cons-card">
+        <div class="cons-top">
+          <span class="cons-prov" style="color:var(--c-loncin)">LONCIN</span>
+          <span class="cons-days">101 días</span>
+        </div>
+        <div style="font-size:0.62rem;color:var(--text-3);margin-bottom:4px">4,357 transacciones</div>
+        <div class="cons-bars">
+          <div class="cons-bar" style="background:var(--c-loncin);flex:5"></div>
+          <div class="cons-bar" style="background:rgba(56,189,248,0.2);flex:0.05"></div>
+        </div>
+      </div>
+      <div class="cons-card">
+        <div class="cons-top">
+          <span class="cons-prov" style="color:var(--c-guangyu)">GUANGYU</span>
+          <span class="cons-days">83 días</span>
+        </div>
+        <div style="font-size:0.62rem;color:var(--text-3);margin-bottom:4px">656 transacciones</div>
+        <div class="cons-bars">
+          <div class="cons-bar" style="background:var(--c-guangyu);flex:4.1"></div>
+          <div class="cons-bar" style="background:rgba(167,139,250,0.2);flex:0.9"></div>
+        </div>
+      </div>
+      <div class="cons-card">
+        <div class="cons-top">
+          <span class="cons-prov" style="color:var(--c-tayo)">TAYO</span>
+          <span class="cons-days">81 días</span>
+        </div>
+        <div style="font-size:0.62rem;color:var(--text-3);margin-bottom:4px">594 transacciones</div>
+        <div class="cons-bars">
+          <div class="cons-bar" style="background:var(--c-tayo);flex:4"></div>
+          <div class="cons-bar" style="background:rgba(251,146,60,0.2);flex:1"></div>
+        </div>
+      </div>
+      <div class="cons-card" style="border-color:rgba(16,185,129,0.3)">
+        <div class="cons-top">
+          <span class="cons-prov" style="color:var(--c-daojiu)">DAOJIU ⚡</span>
+          <span class="cons-days" style="color:var(--red)">15 días</span>
+        </div>
+        <div style="font-size:0.62rem;color:var(--text-3);margin-bottom:4px">226 trans. — explosivo</div>
+        <div class="cons-bars">
+          <div class="cons-bar" style="background:var(--c-daojiu);flex:0.75"></div>
+          <div class="cons-bar" style="background:rgba(239,68,68,0.2);flex:4.25"></div>
+        </div>
+      </div>
+      <div class="cons-card">
+        <div class="cons-top">
+          <span class="cons-prov" style="color:var(--c-minf)">MINF</span>
+          <span class="cons-days">72 días</span>
+        </div>
+        <div style="font-size:0.62rem;color:var(--text-3);margin-bottom:4px">649 transacciones</div>
+        <div class="cons-bars">
+          <div class="cons-bar" style="background:var(--c-minf);flex:3.6"></div>
+          <div class="cons-bar" style="background:rgba(245,158,11,0.2);flex:1.4"></div>
+        </div>
+      </div>
+      <div class="cons-card">
+        <div class="cons-top">
+          <span class="cons-prov" style="color:var(--c-taizhou)">TAIZHOU</span>
+          <span class="cons-days">46 días</span>
+        </div>
+        <div style="font-size:0.62rem;color:var(--text-3);margin-bottom:4px">305 transacciones</div>
+        <div class="cons-bars">
+          <div class="cons-bar" style="background:var(--c-taizhou);flex:2.3"></div>
+          <div class="cons-bar" style="background:rgba(236,72,153,0.2);flex:2.7"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /fila 4 -->
+
+<!-- ===== FILA 5: TOP 10 x Cantidad + TOP 10 x Valor ===== -->
+<div class="section-label">Top 10 Ítems Más Facturados</div>
+<div class="row r-2col">
+
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--cyan)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--cyan);background:var(--cyan)"></span>Top 10 por Unidades Facturadas (Mayor Rotación)</div>
+    <div class="chart-wrap" style="height:260px"><canvas id="cTop10Qty" aria-label="Top 10 ítems por cantidad facturada"></canvas></div>
+  </div>
+
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--gold)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--gold);background:var(--gold)"></span>Top 10 por Valor FOB — Ítems de Mayor Impacto Monetario</div>
+    <div class="chart-wrap" style="height:260px"><canvas id="cTop10Val" aria-label="Top 10 ítems por valor FOB"></canvas></div>
+  </div>
+
+</div>
+
+<!-- ===== FILA 6: Volatilidad mensual ===== -->
+<div class="section-label">Alerta de Volatilidad y Concentración</div>
+<div class="row r-fullwidth">
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--red)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--red);background:var(--red)"></span>Volatilidad de Ventas — Variación Mes a Mes (MoM) <span class="badge badge-warn">Alta variabilidad</span></div>
+    <div class="volt-row">
+      <div class="volt-card">
+        <div class="volt-month">Dic 2025</div>
+        <div class="volt-val" style="color:var(--text-2)">$12,706</div>
+        <div class="volt-mom neu">— Base</div>
+      </div>
+      <div class="volt-card">
+        <div class="volt-month">Ene 2026</div>
+        <div class="volt-val" style="color:var(--red)">$5,671</div>
+        <div class="volt-mom down">▼ −55.4%</div>
+      </div>
+      <div class="volt-card featured">
+        <div class="volt-month">Feb 2026</div>
+        <div class="volt-val" style="color:var(--green)">$28,321</div>
+        <div class="volt-mom up">▲ +399%</div>
+      </div>
+      <div class="volt-card">
+        <div class="volt-month">Mar 2026</div>
+        <div class="volt-val" style="color:var(--orange)">$19,282</div>
+        <div class="volt-mom down">▼ −31.9%</div>
+      </div>
+      <div class="volt-card featured">
+        <div class="volt-month">Abr 2026</div>
+        <div class="volt-val" style="color:var(--green)">$32,480</div>
+        <div class="volt-mom up">▲ +68.4%</div>
+      </div>
+    </div>
+    <div class="volt-insight">
+      <strong>⚠ Alta volatilidad detectada</strong> (rango −55.4% a +399% MoM). Las ventas se concentran en pedidos grandes y esporádicos, no en flujo continuo. 
+      Recomendación: establecer <strong>mínimos de reorden</strong> con LONCIN y DAOJIU para estabilizar el ciclo. La proyección de mayo–junio sugiere tendencia al alza si DAOJIU mantiene el ritmo de abril.
+    </div>
+  </div>
+</div>
+
+<!-- ===== FILA 7: Concentración barras + Tabla ranking ===== -->
+<div class="row r-2col-big">
+
+  <!-- Barras concentración FOB -->
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--lime)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--lime);background:var(--lime)"></span>Concentración de Valor FOB — Participación Individual</div>
+    <div class="risk-rows">
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-loncin);font-weight:700">LONCIN</span>
+        <div class="risk-track"><div class="risk-fill" style="width:100%;background:linear-gradient(90deg,var(--c-loncin),rgba(56,189,248,0.5))"></div></div>
+        <span class="risk-pct" style="color:var(--c-loncin)">69.6%</span>
+        <span class="risk-usd">$68,526</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-minf)">MINF</span>
+        <div class="risk-track"><div class="risk-fill" style="width:10.2%;background:var(--c-minf)"></div></div>
+        <span class="risk-pct">7.1%</span>
+        <span class="risk-usd">$6,945</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-daojiu)">DAOJIU</span>
+        <div class="risk-track"><div class="risk-fill" style="width:9.1%;background:var(--c-daojiu)"></div></div>
+        <span class="risk-pct">6.3%</span>
+        <span class="risk-usd">$6,230</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-guangyu)">GUANGYU</span>
+        <div class="risk-track"><div class="risk-fill" style="width:8.4%;background:var(--c-guangyu)"></div></div>
+        <span class="risk-pct">5.8%</span>
+        <span class="risk-usd">$5,735</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-tayo)">TAYO</span>
+        <div class="risk-track"><div class="risk-fill" style="width:6.9%;background:var(--c-tayo)"></div></div>
+        <span class="risk-pct">4.8%</span>
+        <span class="risk-usd">$4,763</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-taizhou)">TAIZHOU</span>
+        <div class="risk-track"><div class="risk-fill" style="width:5.0%;background:var(--c-taizhou)"></div></div>
+        <span class="risk-pct">3.5%</span>
+        <span class="risk-usd">$3,418</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-otros)">COMPRA LOCAL</span>
+        <div class="risk-track"><div class="risk-fill" style="width:1.0%;background:var(--c-otros)"></div></div>
+        <span class="risk-pct">0.7%</span>
+        <span class="risk-usd">$697</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-otros)">VENTO</span>
+        <div class="risk-track"><div class="risk-fill" style="width:0.9%;background:var(--c-otros)"></div></div>
+        <span class="risk-pct">0.6%</span>
+        <span class="risk-usd">$635</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-otros)">QUALITY</span>
+        <div class="risk-track"><div class="risk-fill" style="width:0.9%;background:var(--c-otros)"></div></div>
+        <span class="risk-pct">0.6%</span>
+        <span class="risk-usd">$599</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--c-otros)">RATO</span>
+        <div class="risk-track"><div class="risk-fill" style="width:0.8%;background:var(--c-otros)"></div></div>
+        <span class="risk-pct">0.6%</span>
+        <span class="risk-usd">$569</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--text-3)">SOKON</span>
+        <div class="risk-track"><div class="risk-fill" style="width:0.4%;background:var(--text-3)"></div></div>
+        <span class="risk-pct" style="color:var(--text-3)">0.3%</span>
+        <span class="risk-usd" style="color:var(--text-3)">$285</span>
+      </div>
+      <div class="risk-item">
+        <span class="risk-name" style="color:var(--text-3)">OTROS (2)</span>
+        <div class="risk-track"><div class="risk-fill" style="width:0.1%;background:var(--text-3)"></div></div>
+        <span class="risk-pct" style="color:var(--text-3)">0.1%</span>
+        <span class="risk-usd" style="color:var(--text-3)">$58</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla ranking -->
+  <div class="panel" style="padding-left:22px">
+    <div class="panel-accent" style="background:var(--purple)"></div>
+    <div class="panel-title"><span class="dot" style="color:var(--purple);background:var(--purple)"></span>Ranking — Atención Prioritaria</div>
+    <table class="prov-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Proveedor</th>
+          <th>FOB ($)</th>
+          <th>Unids</th>
+          <th>SKUs</th>
+          <th>Días</th>
+          <th>% Part.</th>
+          <th>Participación</th>
+        </tr>
+      </thead>
+      <tbody id="provTableBody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /fila 7 -->
+
+</main>
+
+<footer class="footer">
+  Dashboard de Gestión de Proveedores · Período: Dic 2025 – Abr 2026 · 7,057 registros analizados · Proyección: Regresión Lineal Mayo–Junio 2026
+</footer>
+
+<script>
+// ===================== DATA =====================
+const PROV_COLORS = {
+  LONCIN:'#38bdf8', MINF:'#f59e0b', DAOJIU:'#10b981',
+  GUANGYU:'#a78bfa', TAYO:'#fb923c', TAIZHOU:'#ec4899',
+  'COMPRA LOCAL':'#64748b', VENTO:'#2dd4bf', QUALITY:'#84cc16',
+  RATO:'#f472b6', SOKON:'#94a3b8', 'ZHEJIANG QIANJIANG':'#fbbf24', FUEGO:'#ef4444'
+};
+
+const PROVEEDORES = [
+  {p:'LONCIN',   val:68526, qty:16968, items:1070, trans:4357, days:101, ticket:15.73, pct:69.6},
+  {p:'MINF',     val:6945,  qty:1169,  items:313,  trans:649,  days:72,  ticket:10.70, pct:7.1},
+  {p:'DAOJIU',   val:6230,  qty:3043,  items:83,   trans:226,  days:15,  ticket:27.57, pct:6.3},
+  {p:'GUANGYU',  val:5735,  qty:1105,  items:323,  trans:656,  days:83,  ticket:8.74,  pct:5.8},
+  {p:'TAYO',     val:4763,  qty:1062,  items:313,  trans:594,  days:81,  ticket:8.02,  pct:4.8},
+  {p:'TAIZHOU',  val:3418,  qty:780,   items:172,  trans:305,  days:46,  ticket:11.21, pct:3.5},
+  {p:'COMPRA LOCAL',val:697,qty:60,    items:4,    trans:49,   days:32,  ticket:14.23, pct:0.7},
+  {p:'VENTO',    val:635,   qty:31,    items:17,   trans:24,   days:13,  ticket:26.45, pct:0.6},
+  {p:'QUALITY',  val:599,   qty:760,   items:18,   trans:69,   days:8,   ticket:8.69,  pct:0.6},
+  {p:'RATO',     val:569,   qty:62,    items:29,   trans:35,   days:18,  ticket:16.24, pct:0.6},
+];
+
+const MONTHS_H = ['Dic-25','Ene-26','Feb-26','Mar-26','Abr-26'];
+const MONTHS_ALL = ['Dic-25','Ene-26','Feb-26','Mar-26','Abr-26','May-26 ▸','Jun-26 ▸'];
+
+const MONTHLY_VAL = {
+  LONCIN:  [4790.12, 3076.32, 24981.76, 15604.07, 20074.07],
+  MINF:    [2712.5,  893.59,  1871.81,  544.78,   922.13],
+  DAOJIU:  [0,       15.95,   0.81,     610.68,   5602.91],
+  GUANGYU: [977.04,  517.62,  521.76,   1131.97,  2586.16],
+  TAYO:    [1710.28, 855.35,  561.3,    708.89,   926.81],
+  TAIZHOU: [2392.11, 278.5,   211.48,   158.35,   377.66],
+};
+
+const TOP10_QTY = [
+  {d:'Filtro Aceite Papel GT 4V', p:'LONCIN', v:399},
+  {d:'Empaque Drch Motor 6V',     p:'LONCIN', v:282},
+  {d:'Empaque Carter 6V',         p:'LONCIN', v:282},
+  {d:'Empaque Cilindro 6V',       p:'LONCIN', v:280},
+  {d:'Empaque Cabezote CR5',      p:'LONCIN', v:274},
+  {d:'Seguro Pin Pistón',         p:'LONCIN', v:268},
+  {d:'Espejo Izq CR3/CR5',        p:'LONCIN', v:266},
+  {d:'Espejo Drch GT 4V',         p:'LONCIN', v:265},
+  {d:'Empaque Cubierta Motor',    p:'LONCIN', v:255},
+  {d:'Caja Cambio 6V CR5',        p:'LONCIN', v:218},
+];
+
+const TOP10_VAL = [
+  {d:'Motor Cargo Completo R.',     p:'LONCIN',  v:2890},
+  {d:'Caja Cambio 6V CR5',          p:'LONCIN',  v:2854},
+  {d:'Cigüeñal CR5-250/SX2/GT',    p:'LONCIN',  v:2467},
+  {d:'Kit Cilindro 250cc OHC',      p:'DAOJIU',  v:1942},
+  {d:'Cilindro CR5 GT',             p:'LONCIN',  v:1488},
+  {d:'Plato Embrague 68D CR5',      p:'LONCIN',  v:1352},
+  {d:'Conjunto Carter CR5',         p:'LONCIN',  v:1020},
+  {d:'GT 4V Plato Embrague',        p:'LONCIN',  v:820},
+  {d:'Kit Cilindro 250cc B:70.9',   p:'LONCIN',  v:789},
+  {d:'Motor Completo 6V CR5',       p:'LONCIN',  v:710},
+];
+
+// ===================== HELPERS =====================
+const isDark = true;
+const TC  = '#94a3b8';
+const GC  = 'rgba(255,255,255,0.05)';
+const BGT = 'rgba(15,20,32,0.95)';
+
+function gc(p){ return PROV_COLORS[p] || '#64748b'; }
+function hexA(h,a){ return h+(Math.round(a*255)).toString(16).padStart(2,'0'); }
+
+function linProj(arr, steps=2){
+  if(arr.length < 2) return Array(steps).fill(arr.at(-1));
+  const slope = arr.at(-1) - arr.at(-2);
+  return Array.from({length:steps},(_,i)=>Math.max(0, arr.at(-1)+slope*(i+1)));
+}
+
+const baseOpts = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{
+    legend:{labels:{color:TC,font:{size:10,family:'Inter'},boxWidth:8,padding:8}},
+    tooltip:{
+      backgroundColor:BGT, borderColor:'rgba(255,255,255,0.1)', borderWidth:0.5,
+      titleColor:TC, bodyColor:'#f1f5f9', padding:10,
+      titleFont:{size:11,family:'Space Grotesk'}, bodyFont:{size:11,family:'Inter'},
+    }
+  },
+  scales:{
+    x:{ticks:{color:TC,font:{size:10,family:'Inter'}},grid:{color:GC}},
+    y:{ticks:{color:TC,font:{size:10,family:'Inter'}},grid:{color:GC}}
+  }
+};
+
+// ===================== CHART 1: Barras + Línea =====================
+const top8 = PROVEEDORES.slice(0,8);
+new Chart(document.getElementById('cProvBar'),{
+  type:'bar',
+  data:{
+    labels: top8.map(d=>d.p),
+    datasets:[
+      {
+        label:'Valor FOB ($)',
+        data: top8.map(d=>d.val),
+        backgroundColor: top8.map(d=>hexA(gc(d.p),0.35)),
+        borderColor: top8.map(d=>gc(d.p)),
+        borderWidth:1.5, borderRadius:4, yAxisID:'y'
+      },
+      {
+        label:'Unidades',
+        type:'line',
+        data: top8.map(d=>d.qty),
+        borderColor:'#f59e0b', backgroundColor:'transparent',
+        borderWidth:2, borderDash:[4,3],
+        pointRadius:4, pointBackgroundColor:'#f59e0b',
+        tension:0.4, yAxisID:'y2'
+      }
+    ]
+  },
+  options:{
+    ...baseOpts,
+    plugins:{...baseOpts.plugins, legend:{display:false}},
+    scales:{
+      x:{...baseOpts.scales.x, ticks:{color:TC,font:{size:9,family:'Inter'},maxRotation:35}},
+      y:{...baseOpts.scales.y, title:{display:true,text:'FOB ($)',color:TC,font:{size:9}}},
+      y2:{position:'right',ticks:{color:'#f59e0b',font:{size:9,family:'Inter'}},grid:{drawOnChartArea:false},
+        title:{display:true,text:'Unidades',color:'#f59e0b',font:{size:9}}}
+    }
+  }
+});
+
+// ===================== CHART 2: Donut =====================
+new Chart(document.getElementById('cDona'),{
+  type:'doughnut',
+  data:{
+    labels:['LONCIN','MINF','DAOJIU','GUANGYU','TAYO','TAIZHOU','OTROS'],
+    datasets:[{
+      data:[68526,6945,6230,5735,4763,3418,2862],
+      backgroundColor:['#38bdf855','#f59e0b55','#10b98155','#a78bfa55','#fb923c55','#ec489955','#64748b44'],
+      borderColor:['#38bdf8','#f59e0b','#10b981','#a78bfa','#fb923c','#ec4899','#64748b'],
+      borderWidth:1.5, hoverOffset:8,
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{...baseOpts.plugins.tooltip,
+        callbacks:{label:ctx=>`${ctx.label}: $${ctx.raw.toLocaleString('es',{maximumFractionDigits:0})} (${(ctx.raw/98260*100).toFixed(1)}%)`}}
+    },
+    cutout:'65%'
+  }
+});
+
+// ===================== CHART 3: Evolución + Proyección =====================
+const TOP6 = ['LONCIN','MINF','DAOJIU','GUANGYU','TAYO','TAIZHOU'];
+const evolDatasets = TOP6.map(p=>{
+  const hist = MONTHLY_VAL[p];
+  const proj = linProj(hist, 2);
+  return {
+    label: p,
+    data: [...hist, ...proj],
+    borderColor: gc(p),
+    backgroundColor: 'transparent',
+    borderWidth: p==='LONCIN' ? 2.5 : 1.5,
+    pointRadius: MONTHS_ALL.map((_,i)=> i<5 ? 3 : 6),
+    pointStyle: MONTHS_ALL.map((_,i)=> i<5 ? 'circle' : 'triangle'),
+    pointBackgroundColor: gc(p),
+    tension:0.4,
+  };
+});
+
+// Vertical annotation for projection zone
+const evolPlugin = {
+  id:'projZone',
+  beforeDraw(chart){
+    const {ctx,chartArea,scales} = chart;
+    if(!chartArea) return;
+    const x4 = scales.x.getPixelForValue(4);
+    const x6 = scales.x.getPixelForValue(6);
+    ctx.save();
+    ctx.fillStyle='rgba(245,158,11,0.05)';
+    ctx.fillRect(x4, chartArea.top, x6-x4, chartArea.bottom-chartArea.top);
+    ctx.strokeStyle='rgba(245,158,11,0.25)';
+    ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(x4, chartArea.top); ctx.lineTo(x4, chartArea.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font='500 9px Inter,sans-serif'; ctx.fillStyle='rgba(245,158,11,0.7)';
+    ctx.fillText('PROYECCIÓN', x4+6, chartArea.top+12);
+    ctx.restore();
+  }
+};
+
+new Chart(document.getElementById('cEvol'),{
+  type:'line',
+  data:{labels:MONTHS_ALL, datasets:evolDatasets},
+  options:{
+    ...baseOpts,
+    scales:{
+      x:{...baseOpts.scales.x},
+      y:{...baseOpts.scales.y, title:{display:true,text:'Valor FOB ($)',color:TC,font:{size:9}}}
+    }
+  },
+  plugins:[evolPlugin]
+});
+
+// ===================== CHART 4: Top 10 Qty =====================
+new Chart(document.getElementById('cTop10Qty'),{
+  type:'bar',
+  data:{
+    labels: TOP10_QTY.map(d=>d.d),
+    datasets:[{
+      label:'Unidades',
+      data: TOP10_QTY.map(d=>d.v),
+      backgroundColor: TOP10_QTY.map(d=>hexA(gc(d.p),0.35)),
+      borderColor: TOP10_QTY.map(d=>gc(d.p)),
+      borderWidth:1.5, borderRadius:3,
+    }]
+  },
+  options:{
+    ...baseOpts,
+    indexAxis:'y',
+    plugins:{...baseOpts.plugins, legend:{display:false}},
+    scales:{
+      x:{...baseOpts.scales.x},
+      y:{ticks:{color:TC,font:{size:9,family:'Inter'}}, grid:{display:false}}
+    }
+  }
+});
+
+// ===================== CHART 5: Top 10 Val =====================
+new Chart(document.getElementById('cTop10Val'),{
+  type:'bar',
+  data:{
+    labels: TOP10_VAL.map(d=>d.d),
+    datasets:[{
+      label:'Valor FOB ($)',
+      data: TOP10_VAL.map(d=>d.v),
+      backgroundColor: TOP10_VAL.map(d=>hexA(gc(d.p),0.35)),
+      borderColor: TOP10_VAL.map(d=>gc(d.p)),
+      borderWidth:1.5, borderRadius:3,
+    }]
+  },
+  options:{
+    ...baseOpts,
+    indexAxis:'y',
+    plugins:{...baseOpts.plugins, legend:{display:false}},
+    scales:{
+      x:{...baseOpts.scales.x, ticks:{callback:v=>'$'+v.toLocaleString('es',{maximumFractionDigits:0})}},
+      y:{ticks:{color:TC,font:{size:9,family:'Inter'}}, grid:{display:false}}
+    }
+  }
+});
+
+// ===================== TABLE =====================
+const tbody = document.getElementById('provTableBody');
+const maxVal = PROVEEDORES[0].val;
+PROVEEDORES.forEach((d,i)=>{
+  const color = gc(d.p);
+  const rankCls = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+  const barW = Math.max(2, Math.round(d.val/maxVal*80));
+  tbody.innerHTML += `
+    <tr>
+      <td><span class="rank ${rankCls}">${i+1}</span></td>
+      <td><span class="prov-pill" style="background:${color}18;color:${color}">${d.p}</span></td>
+      <td style="font-family:'Space Grotesk',sans-serif;font-size:0.75rem;color:${color}">$${d.val.toLocaleString('es',{maximumFractionDigits:0})}</td>
+      <td>${d.qty.toLocaleString('es')}</td>
+      <td style="color:var(--text-2)">${d.items}</td>
+      <td style="color:var(--text-2)">${d.days}</td>
+      <td style="color:${color};font-weight:600">${d.pct}%</td>
+      <td>
+        <div class="tbl-bar-wrap">
+          <div class="tbl-bar" style="width:${barW}px;background:${color}"></div>
+        </div>
+      </td>
+    </tr>`;
+});
+</script>
+</body>
+</html>
